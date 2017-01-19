@@ -6,8 +6,9 @@
     <% include ./partials/_header %>
 
     <h2>The full URL and its shortened form:</h2>
-
-    <a href = '<%= longURL[shortURL] %>'><%= longURL[shortURL] %></a> &rarr; <a href = '<%= longURL[shortURL] %>'><%= shortURL %></a>
+    <div class="loneText">
+      <a href = '<%= longURL[shortURL] %>'><%= longURL[shortURL] %></a> &rarr; <a href = '<%= longURL[shortURL] %>'><%= shortURL %></a>
+    </div>
     </br></br>
     <form method="POST" action="/<%= shortURL%>/update">
       <label>Made a mistake? Update your URL:</label>
@@ -17,6 +18,6 @@
     </form>
 
     </br></br></br>
-    <p><a href="http://localhost:8080/urls"><div class="bottomText">View all your shortened links here!</div></a></p>
+    <p><a href="http://localhost:8080/urls"><div class="loneText">View all your shortened links here!</div></a></p>
   </body>
 </html>

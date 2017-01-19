@@ -2,7 +2,10 @@ const express = require("express");
 const app = express();
 const PORT = process.env.PORT || 8080; // default port 8080
 const bodyParser = require ("body-parser");
+const cookieParser = require('cookie-parser');
+
 app.use(bodyParser.urlencoded({extended: true}));
+app.use(cookieParser());
 app.use(express.static('public'));
 app.set("view engine", "ejs");
 
@@ -24,29 +27,33 @@ function generateRandomString() {
   return uniqueID;
 };
 
-function deleteURL(id) {
-  delete urlDatabase[id]
-}
-
 const urlDatabase = {
   "b2xVn2": "http://www.lighthouselabs.ca",
   "9sm5xK": "http://www.google.com"
 };
 
 app.get("/", (req, res) => {
-  res.end("Hello!");
+  let login = { username: req.cookies["username"] };
+  res.render("urls_home", login);
 });
 
 // app.get("/urls.json", (req, res) => {
 //   res.json(urlDatabase);
 // });
 
-// app.get("/hello", (req, res) => {
-//   res.end("<html><body>Hello <b>World</b></body></html>\n");
-// });
+app.post("/login", (req, res) => {
+  res.cookie("username", req.body.username)
+  res.redirect("/");
+});
+
+app.post("/logout", (req, res) => {
+  res.clearCookie("username");
+  res.redirect("/");
+})
 
 app.get("/urls/new", (req, res) => {
-  res.render("urls_new");
+  let login = { username: req.cookies["username"] }
+  res.render("urls_new", login);
 });
 
 app.post("/urls", (req, res) => {
@@ -61,13 +68,15 @@ app.post("/urls", (req, res) => {
 });
 
 app.get("/urls" , (req, res) => {
-  let locals = { urls: urlDatabase };
+  let locals = { urls: urlDatabase,
+                 username: req.cookies["username"] };
   res.render("urls_index", locals);
 });
 
 app.get("/urls/:id" , (req, res) => {
   let locals = { shortURL: req.params.id,
-                 longURL: urlDatabase };
+                 longURL: urlDatabase,
+                 username: req.cookies["username"] };
   res.render("urls_show", locals);
 });
 
