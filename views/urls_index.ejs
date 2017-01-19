@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+  <html lang="en">
+  <% include ./partials/_head %>
+  <body>
+
+  <% include ./partials/_header %>
+
+    <h2>Table of URLs and their shortened forms:</h2>
+
+    <table border="1" cellpadding="5" cellspacing="5" style="text-align:center">
+      <tr>
+        <th>Full URL</th>
+        <th>Shortened URL</th>
+        <th>Edit</th>
+      </tr>
+      <% for (let randCode in urls) { %>
+      <tr>
+        <td><%= urls[randCode] %></td>
+        <td><a href = '<%= urls[randCode] %>'><%= randCode %></a></td>
+        <td>
+        <a href="/urls/<%= randCode %>"><button class="button">Update</button></a>
+        <form method="POST" action="/urls/<%= randCode %>/delete">
+          <input class="button" type="submit" value="Delete">
+          </form></td>
+      </tr>
+      <% } %>
+    </table>
+    </br>
+    <a href="http://localhost:8080/urls/new"><div class="bottomText">Shorten a URL here!</div></a>
+
+  </body>
+</html>

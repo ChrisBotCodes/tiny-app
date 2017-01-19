@@ -1,0 +1,49 @@
+header {
+  font-size: 30px;
+  font-family: Courier;
+  text-align: center;
+}
+
+body {
+  text-align: center;
+  background-image: url("http://www.uksoftech.com/wp-content/uploads/2016/02/website-design-background.png");
+  background-size: auto;
+  background-repeat: no-repeat;
+  background-position: center;
+}
+
+
+table {
+  margin: 0 auto;
+  background-color: rgba(100%, 100%, 100%, 0.3);
+
+}
+
+#header {
+  border-style: double;
+  display: inline;
+  padding: 5px;
+  margin: 5px;
+  background-color: rgba(100%, 100%, 100%, 0.3);
+}
+
+.bottomText {
+  border-style: single;
+  border-color: black;
+  font-style: italic;
+  color: black;
+  display: inline;
+  padding: 5px;
+  margin: 5px;
+  background-color: rgba(100%, 100%, 100%, 0.3);
+}
+
+.button {
+  width: 60px;
+  background-color: #9bb8db;
+  font-weight: bold;
+  border-style: solid;
+  border-color: black;
+  border-width: 2px;
+  margin: 1px;
+}
