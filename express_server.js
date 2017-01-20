@@ -2,10 +2,16 @@ const express = require("express");
 const app = express();
 const PORT = process.env.PORT || 8080; // default port 8080
 const bodyParser = require ("body-parser");
-const cookieParser = require('cookie-parser');
+// const cookieParser = require('cookie-parser');
+const bcryptjs = require('bcryptjs');
+const cookieSession = require('cookie-session')
 
 app.use(bodyParser.urlencoded({extended: true}));
-app.use(cookieParser());
+// app.use(cookieParser());
+app.use(cookieSession({
+  name: 'session',
+  keys: ['key1', 'key2']
+}))
 app.use(express.static('public'));
 app.set("view engine", "ejs");
 
@@ -48,14 +54,14 @@ const urlDatabase = {
 };
 
 app.get("/", (req, res) => {
-  let login = { username: req.cookies["username"],
-                info: users[req.cookies["user_id"]] };
+  let login = { username: req.session.username,
+                info: users[req.session.user_id] };
   res.render("urls_home", login);
 });
 
 app.get("/register", (req, res) => {
-  let login = { username: req.cookies["username"],
-                info: users[req.cookies["user_id"]] }
+  let login = { username: req.session.username,
+                info: users[req.session.user_id] }
   res.render("urls_register", login);
 });
 
@@ -69,18 +75,19 @@ app.post("/register", (req, res) => {
     res.status(400).send("Sorry, there was not enough information to process your registration. \nPlease enter both an email address and a password.");
   } else {
     let userID = generateRandomString();
+    let hashedPassword = bcryptjs.hashSync(req.body.password, 10);
     users[userID] = { id: userID,
                       email: req.body.email,
-                      password: req.body.password,
+                      password: hashedPassword,
                       database: {} };
-    res.cookie("user_id", userID);
+    req.session.user_id = userID;
     res.redirect("/");
   };
 });
 
 app.get("/login", (req, res) => {
-  let login = { username: req.cookies["username"],
-                info: users[req.cookies["user_id"]] };
+  let login = { username: req.session.username,
+                info: users[req.session.user_id] };
   res.render("urls_login", login);
 })
 
@@ -90,8 +97,9 @@ app.post("/login", (req, res) => {
     res.status(403);
     res.send("This email does not match any account in our system.");
   } else {
-    if (matchedUser.password === req.body.password) {
-      res.cookie("user_id", matchedUser.id);
+    // if (matchedUser.password === bcryptjs.hashSync(req.body.password, 10)) {
+    if (bcryptjs.compareSync(req.body.password, matchedUser.password)) {
+      req.session.user_id = matchedUser.id;
       res.redirect("/");
     } else {
       res.status(403);
@@ -101,26 +109,27 @@ app.post("/login", (req, res) => {
 });
 
 app.post("/logout", (req, res) => {
-  res.clearCookie("user_id");
+  // res.clearCookie("user_id");
+  req.session.user_id = null;
   res.redirect("/");
 })
 
 app.get("/urls/new", (req, res) => {
-  let login = { username: req.cookies["username"],
-                info: users[req.cookies["user_id"]] };
+  let login = { username: req.session.username,
+                info: users[req.session.user_id] };
   res.render("urls_new", login);
 });
 
 app.post("/urls", (req, res) => {
-  if (req.cookies["user_id"]) {
+  if (req.session.user_id) {
     let generatedCode = generateRandomString();
     if (req.body.longURL.slice(0, 7) === "http://" || req.body.longURL.slice(0, 8) === "https://") {
       urlDatabase[generatedCode] = req.body.longURL;
-      users[req.cookies["user_id"]].database[generatedCode] = req.body.longURL;
+      users[req.session.user_id].database[generatedCode] = req.body.longURL;
       res.redirect('/urls/' + generatedCode);
     } else {
       urlDatabase[generatedCode] = "http://" + req.body.longURL;
-      users[req.cookies["user_id"]].database[generatedCode] = "http://" + req.body.longURL;
+      users[req.session.user_id].database[generatedCode] = "http://" + req.body.longURL;
       res.redirect('/urls/' + generatedCode);
     };
   } else {
@@ -129,11 +138,10 @@ app.post("/urls", (req, res) => {
 });
 
 app.get("/urls" , (req, res) => {
-  console.log(req.cookies["user_id"]);
-  if (req.cookies["user_id"]) {
-    let locals = { urls: users[req.cookies["user_id"]].database,
-                   username: req.cookies["username"],
-                   info: users[req.cookies["user_id"]], };
+  if (req.session.user_id) {
+    let locals = { urls: users[req.session.user_id].database,
+                   username: req.session.username,
+                   info: users[req.session.user_id], };
     res.render("urls_index", locals);
   } else {
     res.status(401);
@@ -144,29 +152,31 @@ app.get("/urls" , (req, res) => {
 app.get("/urls/:id" , (req, res) => {
   let locals = { shortURL: req.params.id,
                  longURL: urlDatabase,
-                 username: req.cookies["username"],
-                 info: users[req.cookies["user_id"]] };
+                 username: req.session.username,
+                 info: users[req.session.user_id] };
   res.render("urls_show", locals);
 });
 
 app.get("/u/:shortURL", (req, res) => {
-  let locals = { 'randCode': req.params.shortURL };
-  let longURL = urlDatabase[locals.randCode];
+  let randCode = req.params.shortURL;
+  let longURL = users[req.session.user_id].database[randCode];
   res.redirect(longURL);
 });
 
 // deletes the object key-value pair corr. to id and redircts to /urls page
 app.post("/urls/:id/delete", (req, res) => {
-  delete urlDatabase[req.params.id]
+  delete users[req.session.user_id].database[req.params.id]
   res.redirect("/urls");
 })
 
 // updates an existing entry's long URL
 app.post("/:id/update", (req, res) => {
-  if (req.body.updatedLongURL.slice(0, 7) === "http://") {
+  if (req.body.updatedLongURL.slice(0, 7) === "http://" || req.body.updatedLongURL.slice(0, 8) === "https://") {
     urlDatabase[req.params.id] = req.body.updatedLongURL;
+    users[req.session.user_id].database[req.params.id] = req.body.updatedLongURL;
   } else {
     urlDatabase[req.params.id] = "http://" + req.body.updatedLongURL;
+    users[req.session.user_id].database[req.params.id] = "http://" + req.body.updatedLongURL;
   };
   res.redirect("/urls")
 })
