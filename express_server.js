@@ -27,56 +27,125 @@ function generateRandomString() {
   return uniqueID;
 };
 
+function matchUser(email) {
+  let returned;
+  for (let rand in users) {
+    if(email === users[rand].email) {
+      returned = users[rand];
+      break;
+    } else {
+      returned = 403;
+    };
+  };
+  return returned;
+}
+
+let users = {};
+
 const urlDatabase = {
   "b2xVn2": "http://www.lighthouselabs.ca",
   "9sm5xK": "http://www.google.com"
 };
 
 app.get("/", (req, res) => {
-  let login = { username: req.cookies["username"] };
+  let login = { username: req.cookies["username"],
+                info: users[req.cookies["user_id"]] };
   res.render("urls_home", login);
 });
 
-// app.get("/urls.json", (req, res) => {
-//   res.json(urlDatabase);
-// });
+app.get("/register", (req, res) => {
+  let login = { username: req.cookies["username"],
+                info: users[req.cookies["user_id"]] }
+  res.render("urls_register", login);
+});
+
+app.post("/register", (req, res) => {
+  for (let rand in users) {
+    if (req.body.email === users[rand].email) {
+      res.status(400).send("Sorry, the email you entered is already in use.");
+    };
+  };
+  if (req.body.email === '' || req.body.password === '') {
+    res.status(400).send("Sorry, there was not enough information to process your registration. \nPlease enter both an email address and a password.");
+  } else {
+    let userID = generateRandomString();
+    users[userID] = { id: userID,
+                      email: req.body.email,
+                      password: req.body.password,
+                      database: {} };
+    res.cookie("user_id", userID);
+    res.redirect("/");
+  };
+});
+
+app.get("/login", (req, res) => {
+  let login = { username: req.cookies["username"],
+                info: users[req.cookies["user_id"]] };
+  res.render("urls_login", login);
+})
 
 app.post("/login", (req, res) => {
-  res.cookie("username", req.body.username)
-  res.redirect("/");
+  let matchedUser = matchUser(req.body.email);
+  if ((matchedUser === 403) || matchedUser === undefined) {
+    res.status(403);
+    res.send("This email does not match any account in our system.");
+  } else {
+    if (matchedUser.password === req.body.password) {
+      res.cookie("user_id", matchedUser.id);
+      res.redirect("/");
+    } else {
+      res.status(403);
+      res.send("Sorry, this password does not match the info for the given email.");
+    };
+  }
 });
 
 app.post("/logout", (req, res) => {
-  res.clearCookie("username");
+  res.clearCookie("user_id");
   res.redirect("/");
 })
 
 app.get("/urls/new", (req, res) => {
-  let login = { username: req.cookies["username"] }
+  let login = { username: req.cookies["username"],
+                info: users[req.cookies["user_id"]] };
   res.render("urls_new", login);
 });
 
 app.post("/urls", (req, res) => {
-  console.log(req.body); // debug statement to see POST parameters
-  let generatedCode = generateRandomString();
-  if (req.body.longURL.slice(0, 7) === "http://") {
-    urlDatabase[generatedCode] = req.body.longURL;
+  if (req.cookies["user_id"]) {
+    let generatedCode = generateRandomString();
+    if (req.body.longURL.slice(0, 7) === "http://" || req.body.longURL.slice(0, 8) === "https://") {
+      urlDatabase[generatedCode] = req.body.longURL;
+      users[req.cookies["user_id"]].database[generatedCode] = req.body.longURL;
+      res.redirect('/urls/' + generatedCode);
+    } else {
+      urlDatabase[generatedCode] = "http://" + req.body.longURL;
+      users[req.cookies["user_id"]].database[generatedCode] = "http://" + req.body.longURL;
+      res.redirect('/urls/' + generatedCode);
+    };
   } else {
-    urlDatabase[generatedCode] = "http://" + req.body.longURL;
+    res.status(401).send("You need to be logged in to shorten a URL.");
   };
-  res.redirect('/urls/' + generatedCode);
 });
 
 app.get("/urls" , (req, res) => {
-  let locals = { urls: urlDatabase,
-                 username: req.cookies["username"] };
-  res.render("urls_index", locals);
+  console.log(req.cookies["user_id"]);
+  if (req.cookies["user_id"]) {
+    let locals = { urls: users[req.cookies["user_id"]].database,
+                   username: req.cookies["username"],
+                   info: users[req.cookies["user_id"]], };
+    res.render("urls_index", locals);
+  } else {
+    res.status(401);
+    res.send("You need to be logged in to view this page.");
+  }
 });
 
 app.get("/urls/:id" , (req, res) => {
   let locals = { shortURL: req.params.id,
                  longURL: urlDatabase,
-                 username: req.cookies["username"] };
+                 username: req.cookies["username"],
+                 info: users[req.cookies["user_id"]] };
   res.render("urls_show", locals);
 });
 

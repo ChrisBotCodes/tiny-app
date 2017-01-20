@@ -6,6 +6,7 @@ header {
 
 body {
   text-align: center;
+  padding: 50px;
   background-image: url("http://www.uksoftech.com/wp-content/uploads/2016/02/website-design-background.png");
   background-size: auto;
   background-repeat: no-repeat;
@@ -39,7 +40,7 @@ table {
 }
 
 .button {
-  width: 60px;
+  width: 70px;
   background-color: #9bb8db;
   font-weight: bold;
   border-style: solid;

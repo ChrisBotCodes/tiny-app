@@ -15,12 +15,15 @@
       </tr>
       <% for (let randCode in urls) { %>
       <tr>
-        <td> <%= urls[randCode] %> </td>
-        <td><a href='<%= urls[randCode] %>'><%= randCode %></a></td>
-        <td><a href='/urls/<%= randCode %>'><button class="button">Update</button></a>
-          <form method="POST" action="/urls/<%= randCode %>/delete">
-          <input class="button" type="submit" value="Delete">
-          </form></td>
+        <td><%= urls[randCode] %></td>
+        <td><a href='<%= urls[randCode] %>'>http://localhost:8080/u/<%= randCode %></a></td>
+        <td><form action="/urls/<%= randCode %>">
+              <input class="button" type="submit" value="Update">
+            </form>
+            <form method="POST" action="/urls/<%= randCode %>/delete">
+              <input class="button" type="submit" value="Delete">
+            </form>
+        </td>
       </tr>
       <% } %>
     </table>
