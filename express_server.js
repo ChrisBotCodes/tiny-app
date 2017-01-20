@@ -2,12 +2,10 @@ const express = require("express");
 const app = express();
 const PORT = process.env.PORT || 8080; // default port 8080
 const bodyParser = require ("body-parser");
-// const cookieParser = require('cookie-parser');
 const bcryptjs = require('bcryptjs');
 const cookieSession = require('cookie-session')
 
 app.use(bodyParser.urlencoded({extended: true}));
-// app.use(cookieParser());
 app.use(cookieSession({
   name: 'session',
   keys: ['key1', 'key2']
@@ -15,7 +13,7 @@ app.use(cookieSession({
 app.use(express.static('public'));
 app.set("view engine", "ejs");
 
-// Function choosen a random alphanumeric character b/w '0' (ascii 48)
+// Chooses a random alphanumeric character b/w '0' (ascii 48)
 // and 'z' (ascii 122) while omitted special character in between.
 // Not the most efficient code but I wanted to try this method.
 function generateRandomString() {
@@ -33,6 +31,8 @@ function generateRandomString() {
   return uniqueID;
 };
 
+// match user-submitted log-in email to an email in the users database.
+// returns the user's information as an object.
 function matchUser(email) {
   let returned;
   for (let rand in users) {
@@ -47,24 +47,30 @@ function matchUser(email) {
 }
 
 let users = {};
+let pageVisits = 0;
 
 const urlDatabase = {
   "b2xVn2": "http://www.lighthouselabs.ca",
   "9sm5xK": "http://www.google.com"
 };
 
+// home page
 app.get("/", (req, res) => {
+  pageVisits += 1
   let login = { username: req.session.username,
-                info: users[req.session.user_id] };
+                info: users[req.session.user_id],
+                pageVisits: pageVisits};
   res.render("urls_home", login);
 });
 
+// register page
 app.get("/register", (req, res) => {
   let login = { username: req.session.username,
                 info: users[req.session.user_id] }
   res.render("urls_register", login);
 });
 
+// registers a user and redirects to homepage if successful
 app.post("/register", (req, res) => {
   for (let rand in users) {
     if (req.body.email === users[rand].email) {
@@ -85,19 +91,20 @@ app.post("/register", (req, res) => {
   };
 });
 
+// log-in page
 app.get("/login", (req, res) => {
   let login = { username: req.session.username,
                 info: users[req.session.user_id] };
   res.render("urls_login", login);
 })
 
+// logs in the user if email is found in user database and inputted password matches that user's database password
 app.post("/login", (req, res) => {
   let matchedUser = matchUser(req.body.email);
   if ((matchedUser === 403) || matchedUser === undefined) {
     res.status(403);
     res.send("This email does not match any account in our system.");
   } else {
-    // if (matchedUser.password === bcryptjs.hashSync(req.body.password, 10)) {
     if (bcryptjs.compareSync(req.body.password, matchedUser.password)) {
       req.session.user_id = matchedUser.id;
       res.redirect("/");
@@ -108,18 +115,20 @@ app.post("/login", (req, res) => {
   }
 });
 
+// logging out redirects to home page
 app.post("/logout", (req, res) => {
-  // res.clearCookie("user_id");
   req.session.user_id = null;
   res.redirect("/");
 })
 
+// URL shorten page
 app.get("/urls/new", (req, res) => {
   let login = { username: req.session.username,
                 info: users[req.session.user_id] };
   res.render("urls_new", login);
 });
 
+// shorten a URL if user is logged in
 app.post("/urls", (req, res) => {
   if (req.session.user_id) {
     let generatedCode = generateRandomString();
@@ -137,11 +146,13 @@ app.post("/urls", (req, res) => {
   };
 });
 
+// page displays all user-created shortened URLS
+// page does not display to non-logged-in users
 app.get("/urls" , (req, res) => {
   if (req.session.user_id) {
     let locals = { urls: users[req.session.user_id].database,
                    username: req.session.username,
-                   info: users[req.session.user_id], };
+                   info: users[req.session.user_id] };
     res.render("urls_index", locals);
   } else {
     res.status(401);
@@ -149,6 +160,7 @@ app.get("/urls" , (req, res) => {
   }
 });
 
+// page that shows an individual shortened URL
 app.get("/urls/:id" , (req, res) => {
   let locals = { shortURL: req.params.id,
                  longURL: urlDatabase,
@@ -157,6 +169,7 @@ app.get("/urls/:id" , (req, res) => {
   res.render("urls_show", locals);
 });
 
+// redirects the short URL to the Long URL
 app.get("/u/:shortURL", (req, res) => {
   let randCode = req.params.shortURL;
   let longURL = users[req.session.user_id].database[randCode];
