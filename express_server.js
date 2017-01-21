@@ -13,7 +13,7 @@ app.use(cookieSession({
 app.use(express.static('public'));
 app.set("view engine", "ejs");
 
-// Chooses a random alphanumeric character b/w '0' (ascii 48)
+// Chooses a random alphanumeric character between '0' (ascii 48)
 // and 'z' (ascii 122) while omitted special character in between.
 // Not the most efficient code but I wanted to try this method.
 function generateRandomString() {

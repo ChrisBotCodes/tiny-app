@@ -2,8 +2,8 @@
   <div id="header"><a href="http://localhost:8080/">Chris' URL Shortener</a></div>
   <br><br>
   <% if (info === undefined) { %>
-    Hi there, new user!<br>Click to <a href="http://localhost:8080/register">register</a>.<br>
-      Click to <a href="http://localhost:8080/login">log in</a>.
+    Hi there, new user!<br>Click to <a href="http://localhost:8080/register">register</a>!<br>
+      Click to <a href="http://localhost:8080/login">log in</a>!
     <% } else { %>
       Hi there, <%= info.email %>!
       <form method="POST" action="/logout">
