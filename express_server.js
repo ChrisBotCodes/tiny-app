@@ -74,11 +74,11 @@ app.get("/register", (req, res) => {
 app.post("/register", (req, res) => {
   for (let rand in users) {
     if (req.body.email === users[rand].email) {
-      res.status(400).send("Sorry, the email you entered is already in use.");
+      res.status(400).send("Sorry, the email you entered is already in use. Try to <a href='/register'>register</a> again.");
     };
   };
   if (req.body.email === '' || req.body.password === '') {
-    res.status(400).send("Sorry, there was not enough information to process your registration. \nPlease enter both an email address and a password.");
+    res.status(400).send("Sorry, there was not enough information to process your registration. \nPlease try to <a href='/register'>register</a> again with both an email address and a password.");
   } else {
     let userID = generateRandomString();
     let hashedPassword = bcryptjs.hashSync(req.body.password, 10);
@@ -100,18 +100,21 @@ app.get("/login", (req, res) => {
 
 // logs in the user if email is found in user database and inputted password matches that user's database password
 app.post("/login", (req, res) => {
-  let matchedUser = matchUser(req.body.email);
-  if ((matchedUser === 403) || matchedUser === undefined) {
-    res.status(403);
-    res.send("This email does not match any account in our system.");
+  if (req.body.email === "") {
+    res.send("Please enter an email to log in. Try to <a href='/login'>log in</a> again.");
   } else {
-    if (bcryptjs.compareSync(req.body.password, matchedUser.password)) {
-      req.session.user_id = matchedUser.id;
-      res.redirect("/");
+    let matchedUser = matchUser(req.body.email);
+    if ((matchedUser === 403) || matchedUser === undefined) {
+      res.status(403).send("This email does not match any account in our system. Try to <a href='/login'>log in</a> again.");
     } else {
-      res.status(403);
-      res.send("Sorry, this password does not match the info for the given email.");
-    };
+      if (bcryptjs.compareSync(req.body.password, matchedUser.password)) {
+        req.session.user_id = matchedUser.id;
+        res.redirect("/");
+      } else {
+        res.status(403);
+        res.send("Sorry, this password does not match the info for the given email. Try to <a href='/login'>log in</a> again.");
+      };
+    }
   }
 });
 
@@ -142,7 +145,7 @@ app.post("/urls", (req, res) => {
       res.redirect('/urls/' + generatedCode);
     };
   } else {
-    res.status(401).send("You need to be logged in to shorten a URL.");
+    res.status(401).send("You need to be logged in to shorten a URL. Please log in <a href='http://localhost:8080/login'>here</a>.");
   };
 });
 
@@ -156,24 +159,36 @@ app.get("/urls" , (req, res) => {
     res.render("urls_index", locals);
   } else {
     res.status(401);
-    res.send("You need to be logged in to view this page.");
+    res.send("You need to be logged in to view this page. <a href='/login'>Log in</a> here.");
   }
 });
 
 // page that shows an individual shortened URL
 app.get("/urls/:id" , (req, res) => {
-  let locals = { shortURL: req.params.id,
-                 longURL: urlDatabase,
-                 username: req.session.username,
-                 info: users[req.session.user_id] };
-  res.render("urls_show", locals);
+  if (req.session.user_id) {
+    if (req.params.id in users[req.session.user_id].database) {
+      let locals = { shortURL: req.params.id,
+                   longURL: urlDatabase,
+                   username: req.session.username,
+                   info: users[req.session.user_id] };
+      res.render("urls_show", locals);
+    } else {
+      res.status(404).send("This page was not found. Try <a href='/urls/new'>shortening a URL</a> to generate a working link.");
+    }
+  } else {
+    res.status(401).send("You need to be logged in to view this page. <a href='/login'>Log in</a> here.");
+  }
 });
 
 // redirects the short URL to the Long URL
 app.get("/u/:shortURL", (req, res) => {
   let randCode = req.params.shortURL;
-  let longURL = users[req.session.user_id].database[randCode];
-  res.redirect(longURL);
+  let longURL = urlDatabase[randCode];
+  if (longURL === undefined) {
+    res.status(404).send("No matching page was found. Try <a href='/urls/new'>shortening a URL</a> to generate a working link.");
+  } else {
+    res.redirect(longURL);
+  }
 });
 
 // deletes the object key-value pair corr. to id and redircts to /urls page
